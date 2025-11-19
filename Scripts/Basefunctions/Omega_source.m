@@ -14,6 +14,7 @@ function [source] = Omega_source(N, distance)
 
 % Output arguments:
 % source: structure containing the following fields:
+% forward: template of a source forward
 % inverse: template of a source inverse.
 % inside: index of the N inside voxels from the total number of 6804.
 % dim: size of data.
@@ -24,9 +25,11 @@ function [source] = Omega_source(N, distance)
 %--------------------------------------------------------%
 
 % Path
-p.repo = fileparts(fileparts(fileparts(matlab.desktop.editor.getActiveFilename))); 
+p.repo = fileparts(fileparts(fileparts(mfilename('fullpath'))));
+
 
 % Load source forward and inverse from a template to get positions
+load([p.repo '\Files\Templates\source_forward_10mm_' num2str(N) '.mat'])
 load([p.repo '\Files\Templates\source_inverse_10mm_' num2str(N) '.mat'])
 
 % Get indices of the N inside voxels
@@ -76,6 +79,7 @@ for v=1:size(inside,1)
 end
 
 % Return:
+source.forward = source_forward;
 source.inverse = source_inverse;
 source.inside   = inside;
 source.dim            = dim;
