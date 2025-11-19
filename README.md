@@ -7,7 +7,7 @@ pBOSC is a method aimed at detecting oscillatory episodes at the source level in
 - \Basefunctions: functions used inside other pBOSC functions.
 
 ## Files:
-Necessary files used during pBOSC.
+Necessary files used during pBOSC. Download from:
 
 ## Raw:
 Raw OMEGA data downloaded from (https://www.mcgill.ca/bic/resources/omega). 
