@@ -31,6 +31,7 @@ for tt = 1:windws
     cfg.begsample = t1;
 
     t2 = t1 + timelen -1;
+    t1 = t2 + 1;
     cfg.endsample = t2;
     datachunk = ft_redefinetrial(cfg,dataclean);
 
@@ -119,4 +120,5 @@ save([dpath '\sub-' sub '\ses-' ses '\aperiodic.mat'], 'aperiodic')
 
 end
 %%
+
 
