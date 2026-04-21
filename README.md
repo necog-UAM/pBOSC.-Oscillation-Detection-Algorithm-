@@ -91,7 +91,7 @@ Next, we isolate the aperiodic (1/f) background activity using the specparam alg
                     sim_aperiodic = sBOSC_aperiodic(simsignal_source, cfg);
 ```
 
-For each overlapping segment, the specparam algorithm identifies spectral peaks, which are then removed from the power spectrum. Note while the the simulated peaks at 12 and 4 Hz are correctly deteceted and removed, two false positives are also captures around 93 Hz.
+For each overlapping segment, the specparam algorithm identifies spectral peaks, which are then removed from the power spectrum. Note the 4 and 12 hz peaks.
 
 
 
@@ -184,6 +184,6 @@ This last step connects adjacent episodes to account for transient disconnection
 If you use sBOSC in your research, please cite:
 
 ```matlab
-Stern, E., Niso, G., & Capilla, A. (2025). pBOSC: A method for source-level identification of neural oscillations in electromagnetic brain signals. bioRxiv, 2025.07.20.665618. https://doi.org/10.1101/2025.07.20.665618
+Stern, E., Niso, G., & Capilla, A. (2025). sBOSC: A method for source-level identification of neural oscillations in electromagnetic brain signals. bioRxiv, 2025.07.20.665618. https://doi.org/10.1101/2025.07.20.665618
 
 ```
