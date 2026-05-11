@@ -9,6 +9,7 @@ dims = size(datasource);
 if dims(2)>dims(1)
     datasource = datasource';
 end
+dims = size(datasource);
 
 if dims(1) == 1925
     load source_template_10mm_1925.mat

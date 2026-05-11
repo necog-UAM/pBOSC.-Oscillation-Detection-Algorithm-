@@ -1,9 +1,13 @@
-function pBOSC_sourcefig(datasource, filename, varargin)
+function sBOSC_sourcefig(datasource, filename, varargin)
 
 %--------------------------------------------%
 % Generates a brain source image and saves it in current folder. Fieldtrip
 % is needed. Can input color lims as cfg.colim.
 %--------------------------------------------%
+
+% Fieldtrip path
+ftPath = fileparts(which('ft_defaults'));
+addpath(genpath(ftPath));
 
 if nargin > 2
     optionalArg = varargin{1};
