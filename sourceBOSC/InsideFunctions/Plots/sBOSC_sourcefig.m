@@ -1,102 +1,104 @@
-function sBOSC_sourcefig(datasource, filename, varargin)
+function sBOSC_sourcefig(datasource, cfg)
 
-%--------------------------------------------%
-% Generates a brain source image and saves it in current folder. Fieldtrip
-% is needed. Can input color lims as cfg.colim.
-%--------------------------------------------%
+%%
+% Generates a brain source image and optionally saves image.
+% Fieldtrip required. Can input color lims as cfg.colim.
+%   sBOSC_sourcefig(datasource) plots the source
+%   sBOSC_sourcefig(datasource, cfg) plots the data applying custom 
+%   plot configurations.
+%
+%   Inputs:
+%           datasource - Numeric vector containing exactly 1925 or 3294 voxels.
+%
+%           cfg        - (Optional) Structure containing visual configurations:
+%
+%               cfg.interp  : String defining the interpolation method (e.g.,
+%                           'nearest', 'linear'). Default is 'nearest'.
+%               cfg.colim   : 1x2 numeric array for color limits [min max].
+%                           Default is 'auto'.
+%               cfg.colmap  : String or N x 3 array defining the colormap.
+%                           Default is 'auto'.
 
-% Fieldtrip path
+
+% Fieldtrip path (breaks if ft_defualts)
 ftPath = fileparts(which('ft_defaults'));
 addpath(genpath(ftPath));
 
-if nargin > 2
-    optionalArg = varargin{1};
+% Defaults
+if nargin < 2
+    cfg = struct();
+end
+if isfield(cfg, 'interp')
+    interpmethod = cfg.interp;
 else
-    optionalArg = 'default';
+    interpmethod = 'nearest';
+end
+if isfield(cfg, 'colim')
+    funcolorlim = cfg.colim;
+else
+    funcolorlim = 'auto';
+end
+if isfield(cfg, 'colmap')
+    funcolormap = cfg.colmap;
+else
+    funcolormap = 'auto';
 end
 
 % Correct column orientation
-[N, M] = size(datasource);
+datasource = datasource(:);
+Nvox = length(datasource);
 
-if N == 1925 || N == 3294
-elseif M == 1925 || M == 3294
-    datasource = datasource';
-else
-    error('Input data must have a dimension of 1925 or 3294 voxels (Found %d x %d)', N, M);
+if Nvox ~= 1925 && Nvox ~= 3294
+    error('Input data must have exactly 1925 or 3294 voxels.');
 end
 
-Nvox = size(datasource, 1);
-
+% Load sources
 if Nvox == 1925
-    load source_template_10mm_1925.mat
-    inside = source.inverse.inside;
-    clear source
-    
-    load standard_sourcemodel3d10mm.mat 
-    source_mni = sourcemodel;
-    
-elseif Nvox == 3294
-    load source_template_10mm_3294.mat
-    inside = source.inverse.inside;
-    clear source
-    
-    load standard_sourcemodel3d10mm.mat 
-    source_mni = sourcemodel;
+    t = load('source_template_10mm_1925.mat');
 else
-    error('Data input must have length of 1925 or 3294 voxels')
+    t = load('source_template_10mm_3294.mat');
 end
+inside = t.source.inverse.inside;
 
+mdl = load('standard_sourcemodel3d10mm.mat');
+source_mni = mdl.sourcemodel;
 source_mni.inside = inside;
-
-source_mni.avg.pow = nan(length(source_mni.inside), 1);
+source_mni.avg.pow = nan(length(inside), 1);
 source_mni.avg.pow(inside) = datasource;
 source_mni.time = 1;
 
-load standard_mri.mat
+templ = load('standard_mri.mat');
 
-cfg=[];
-cfg.parameter  = 'avg.pow';
-cfg.downsample = 2;
-if strcmp(optionalArg, 'default')
-    cfg.interpmethod = 'nearest';
-elseif isfield(optionalArg,'interp')
-    cfg.interpmethod = 'linear';
-end
-source_interp = ft_sourceinterpolate (cfg, source_mni, mri);
+% Interpolation
+cfg_interp = [];
+cfg_interp.parameter  = 'avg.pow';
+cfg_interp.downsample = 2;
+cfg_interp.interpmethod = interpmethod;
+source_interp = ft_sourceinterpolate(cfg_interp, source_mni, templ.mri);
 
-figure('WindowState','maximized','Color',[1 1 1]);
-% figure
+% Plot
+f = figure('WindowState','maximized','Color','w');
 
-cfg               = [];
-cfg.method        = 'surface';
-cfg.funparameter  = 'pow';
-cfg.maskparameter = cfg.funparameter;
-if strcmp(optionalArg, 'default')
-    cfg.funcolorlim   = 'auto';
-elseif isfield(optionalArg,'colim')
-    cfg.funcolorlim   = optionalArg.colim;
-end
-if strcmp(optionalArg, 'default')
-    cfg.funcolormap   = 'auto';
-elseif isfield(optionalArg,'colmap')
-    cfg.funcolormap   = optionalArg.colmap;
-end
-cfg.projmethod    = 'nearest';
-cfg.opacity       = 0.8;
-cfg.figure        = 'gca';
-cfg.camlight      = 'no';
-cfg.colorbar      = 'yes';
-cfg.surffile     = 'surface_pial_left.mat';
-cfg.surfinflated  = 'surface_inflated_left_caret_white.mat';
-subplot(2,2,1), ft_sourceplot(cfg,source_interp), view([-90 0]), camlight('left')
-subplot(2,2,3), ft_sourceplot(cfg,source_interp), view([90 0]),  camlight('left')
+cfg_plot = [];
+cfg_plot.method        = 'surface';
+cfg_plot.funparameter  = 'pow';
+cfg_plot.maskparameter = 'pow';
+cfg_plot.projmethod    = 'nearest';
+cfg_plot.opacity       = 0.8;
+cfg_plot.figure        = 'gca';
+cfg_plot.camlight      = 'no';
+cfg_plot.colorbar      = 'yes';
+cfg_plot.funcolorlim = funcolorlim;
+cfg_plot.funcolormap = funcolormap;
 
-cfg.surffile     = 'surface_pial_right.mat';
-cfg.surfinflated  = 'surface_inflated_right_caret_white.mat';
-subplot(2,2,2), ft_sourceplot(cfg,source_interp), view([90 0]),  camlight('right')
-subplot(2,2,4), ft_sourceplot(cfg,source_interp), view([-90 0]), camlight('right')
+% Left Hemisphere
+cfg_plot.surffile     = 'surface_pial_left.mat';
+cfg_plot.surfinflated = 'surface_inflated_left_caret_white.mat';
+subplot(2,2,1); ft_sourceplot(cfg_plot, source_interp); view([-90 0]); camlight('left');
+subplot(2,2,3); ft_sourceplot(cfg_plot, source_interp); view([90 0]);  camlight('left');
 
-if isfield(optionalArg,'savefig')
-    print('-dtiff','-r300',filename);
-end
-end
+% Right Hemisphere
+cfg_plot.surffile     = 'surface_pial_right.mat';
+cfg_plot.surfinflated = 'surface_inflated_right_caret_white.mat';
+subplot(2,2,2); ft_sourceplot(cfg_plot, source_interp); view([90 0]);  camlight('right');
+subplot(2,2,4); ft_sourceplot(cfg_plot, source_interp); view([-90 0]); camlight('right');
