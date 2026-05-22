@@ -105,6 +105,7 @@ end
 for s = 1:Nsub 
     sprintf(['\n Processing Sub:' subs{s} '..\n'])
     load([p.data '\sub-' subs{s} '\ses-' sess{s} '\datasource_3423.mat'])
+    datasource = dataclean;
         cfg = [];
         cfg.datatype   = 'continuous';
         cfg.windowlength = 20;
