@@ -111,7 +111,7 @@ for s = 1:Nsub
     evalc('aperiodic = sBOSC_aperiodic(datasource, cfg)');
     
     % Save
-    save([p.data '\sub-' subs{s} '\ses-' sess{s} '\aperiodic_def.mat'], 'aperiodic');
+    save([p.data '\sub-' subs{s} '\ses-' sess{s} '\aperiodic.mat'], 'aperiodic');
     
     
 %% ----------- 4. Power-spectrum and power threshold ---------------- %
