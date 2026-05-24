@@ -121,7 +121,7 @@ for s = 1:Nsub
     evalc('[powspctm, thshld, frex, fsample] = sBOSC_timefreq(datasource, aperiodic, cfg)');
     
     % Save
-    save([p.data '\sub-' subs{s} '\ses-' sess{s} '\thshld_def.mat'], 'thshld');   
+    save([p.data '\sub-' subs{s} '\ses-' sess{s} '\thshld.mat'], 'thshld');   
     
 %% ----------- 5. Local and spatial peaks detection ---------------- %
     evalc('[spatialpks, localpks] = sBOSC_spatialpeaks(powspctm, thshld)');
