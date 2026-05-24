@@ -17,20 +17,19 @@ function  [spatialpks, localpks] = sBOSC_spatialpeaks(powspctm, thshld)
 % - localpks   : [4D logical] Boolean array of local peaks that exceed the
 %                aperiodic threshold.
 
-%% Step 4. Find local peaks in each vox-freq point across time
+
 load source_template_10mm_3423.mat
 source = source.inverse;
-
 [nTrials, nVox, nFrex, nTp] = size(powspctm);
 
 % Spatial configuration
 inside = find(source.inside);
 positions = source.pos(inside,:);
-distance = 1.5; % 19 neighbours
+distance = 1.5;% 19 neighbours
 
 % Find connectivity matrix of voxels
-connmat = pdist2(positions, positions) <= distance;
-maxconn = max(sum(connmat));
+connmat   = pdist2(positions, positions) <= distance;
+maxconn   = max(sum(connmat));
 valid_vox = find(sum(connmat, 2) == maxconn);
 
 % Adjust positions
@@ -41,63 +40,59 @@ zz = positions_allvox(inside, 3)';
 dim = source.dim;
 ind_voxels = sub2ind(dim, xx, yy, zz);
 
+% 3D coordinates
+[vx_all, vy_all, vz_all] = ind2sub(dim, ind_voxels);
+
 % initialize
 spatialpks = false(nTrials, nVox, nFrex, nTp);
-localpks   = false(nTrials, nVox, nFrex, nTp);
+localpks = false(nTrials, nVox, nFrex, nTp);
 thshld_3d = reshape(thshld, [nVox, nFrex, 1]);
 
 %% Trial loop
 for trl = 1:nTrials
-    pow_trl = reshape(powspctm(trl, :, :, :), [nVox, nFrex, nTp]);
+    pow_trl     = reshape(powspctm(trl, :, :, :), [nVox, nFrex, nTp]);
     mask_ap_ths = pow_trl >= thshld_3d;
 
     %% Find local peaks & Apply Aperiodic Threshold
     for vidx = 1:length(valid_vox)
         v = valid_vox(vidx);
         pow_v = reshape(pow_trl(v, :, :), [nFrex, nTp]);
-
         % Local peaks
         [~, ~, locmx] = findlocalmax(pow_v, 1, []);
-
         % Aperiodic threshold
         mask_ap_v = reshape(mask_ap_ths(v, :, :), [nFrex, nTp]);
-
-        % Keep peaks that are local maxima and exceed the aperiodic threshold
-        localpks(trl, v, :, :) = locmx & mask_ap_v;
+        localpks(trl,v,:,:) = locmx & mask_ap_v;
     end
 
     %% Select only tf points with spatial maxima
-
-    % Frequency loop
     for f0 = 1:nFrex
         anypeak = reshape(localpks(trl, :, f0, :), [nVox, nTp]);
         if ~any(anypeak(:)), continue; end
-
         t_filt = find(any(anypeak, 1));
         pow_f0 = reshape(pow_trl(:, f0, t_filt), [nVox, length(t_filt)]);
 
         % Interpolate to 3D grid
-        dinterp = pow_f0' * source.dtempl;
+        pow_f0_mask = pow_f0 .* anypeak(:, t_filt);
+        dinterp       = pow_f0_mask' * source.dtempl;
 
         % Time loop
         for idx = 1:length(t_filt)
-            t0 = t_filt(idx);
+            t0    = t_filt(idx);
             vol3d = reshape(dinterp(idx, :), [dim(1), dim(2), dim(3)]);
-
-            % Find spatial peaks
             [~, ~, locmx] = findlocalmax(vol3d, 3, []);
-            % Extract peaks for inside voxels
-            spatial_pks_vox = locmx(ind_voxels);
-            % Intersection of local and spatial peaks
+
+            max_positions   = find(locmx);
+            spatial_pks_vox = false(nVox, 1);
+            for m = 1:length(max_positions)
+                [mx, my, mz] = ind2sub(dim, max_positions(m));
+                dists = (vx_all-mx).^2 + (vy_all-my).^2 + (vz_all-mz).^2;
+                [~, nearest] = min(dists);
+                if anypeak(nearest, idx)
+                    spatial_pks_vox(nearest) = true;
+                end
+            end
             spatialpks(trl, :, f0, t0) = (spatial_pks_vox(:) & anypeak(:, t0))';
         end
-
     end
 end
-
 end
-
-
-
-
-

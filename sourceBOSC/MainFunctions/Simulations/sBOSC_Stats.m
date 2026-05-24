@@ -49,14 +49,6 @@ simpnts = find(simulatedepisodes(dipolevoxIN,simfrx,:));
     colormap(cmp)
     end
 
-% % Find the voxels with maximum number of the predicted episodes
-[tmpval,leakvxidx] = sort(sum(predictedepisodes(:,simfrx,simpnts),3) / sum(simulatedepisodes(dipolevoxIN,simfrx,simpnts)),'descend');
-leakvxidx = leakvxidx(tmpval>.9); % Voxels with at least 90% of episodes found
-
-% Now keep the voxel with maximum power
-    [~,maxvox] = max(sum(powspctm(leakvxidx,simfrx,simpnts),3));
-    maxvox = leakvxidx(maxvox);
-
 % Stats simulation vs prediction
 diffepis = predictedepisodes - simulatedepisodes;
 falsenegative = sum(sum(sum(diffepis==-1))) ./ sum(sum(sum(simulatedepisodes))) * 100;
@@ -65,6 +57,24 @@ truenegative =  sum(sum(sum(predictedepisodes==0))) ./  sum(sum(sum(simulatedepi
 precision = truepositive / (truepositive + falsepositive) * 100;
 recall = truepositive / (truepositive + falsenegative) * 100;
 f1score = 2 * (precision*recall) ./ (precision + recall);
+
+stats.simvoxel ={['True negative:']  [num2str(truenegative)];
+                 ['False positive:'] [num2str(falsepositive)];
+                 ['False negative:'] [num2str(falsenegative)];
+                 ['True positive:']  [num2str(truepositive)];
+                 ['Precision:']      [num2str(precision)];
+                 ['Recall:']         [num2str(recall)]; 
+                 ['F1 score:'] [num2str(f1score)]
+                 ['Simulated voxel:'] [num2str(dipolevoxIN)]};        
+
+% Find the voxels with maximum number of the predicted episodes
+[tmpval,leakvxidx] = sort(sum(predictedepisodes(:,simfrx,simpnts),3) / sum(simulatedepisodes(dipolevoxIN,simfrx,simpnts)),'descend');
+leakvxidx = leakvxidx(tmpval>.9); % Voxels with at least 90% of episodes found
+
+% Now keep the voxel with maximum power
+if any(tmpval>.9)
+    [~,maxvox] = max(sum(powspctm(leakvxidx,simfrx,simpnts),3));
+    maxvox = leakvxidx(maxvox);
 
 % Alternative voxel
 altvxepis = squeeze(predictedepisodes(maxvox,simfrx,:)) + squeeze(simulatedepisodes(dipolevoxIN,simfrx,:));
@@ -77,16 +87,6 @@ precisionaltvx = truepositivealtvx / (truepositivealtvx + falsepositive) * 100;
 recallaltvx = truepositivealtvx / (truepositivealtvx + falsenegative) * 100;
 f1scorealtvx = 2 * (precisionaltvx*recallaltvx) ./ (precisionaltvx + recallaltvx);
 
-stats.simvoxel ={['True negative:']  [num2str(truenegative)];
-                 ['False positive:'] [num2str(falsepositive)];
-                 ['False negative:'] [num2str(falsenegative)];
-                 ['True positive:']  [num2str(truepositive)];
-                 ['Precision:']      [num2str(precision)];
-                 ['Recall:']         [num2str(recall)]; 
-                 ['F1 score:'] [num2str(f1score)]
-                 ['Simulated voxel:'] [num2str(dipolevoxIN)]};        
-
-
 stats.altvoxel ={['True negative:']  [num2str(truenegativealtvx)];
                  ['False positive:'] [num2str(falsepositive)];
                  ['False negative:'] [num2str(falsenegativealtvx)];
@@ -94,7 +94,9 @@ stats.altvoxel ={['True negative:']  [num2str(truenegativealtvx)];
                  ['Precision:']      [num2str(precisionaltvx)];
                  ['Recall:']         [num2str(recallaltvx)]; 
                  ['F1 score:'] [num2str(f1scorealtvx)]
-                 ['Alternative voxel:'] [num2str(maxvox)]};        
+                 ['Alternative voxel:'] [num2str(maxvox)]};      
+
+end
            
 end
 
