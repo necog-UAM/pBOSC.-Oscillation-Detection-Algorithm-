@@ -1,4 +1,5 @@
  %% Evaluate model
+% Stats for simulated voxel, a neighbour voxel and a distant voxel
 
  function stats = sBOSC_Stats(predictedepisodes, simdata, powspctm, fsample, frex, figflag)
 %
@@ -28,6 +29,11 @@ source1925.inside = find(source.inverse.inside);
 load source_template_10mm_3423.mat
 source3423.inside = find(source.inverse.inside);
 voxin = find(ismember(source3423.inside,source1925.inside)); % The 1925 voxels inside the 3924
+positions = source.inverse.pos(source3423.inside,:);
+distance = 1.5;% 19 neighbours
+% Find connectivity matrix of voxels
+connmat   = pdist2(positions, positions) <= distance;
+maxconn   = max(sum(connmat));
 
 simulatedepisodes = simepisodes(voxin,:,:);
 for simdips = 1:length(simdata.sim.events)
@@ -67,37 +73,58 @@ stats.simvoxel ={['True negative:']  [num2str(truenegative)];
                  ['F1 score:'] [num2str(f1score)]
                  ['Simulated voxel:'] [num2str(dipolevoxIN)]};        
 
-% Find the voxels with maximum number of the predicted episodes
-[tmpval,leakvxidx] = sort(sum(predictedepisodes(:,simfrx,simpnts),3) / sum(simulatedepisodes(dipolevoxIN,simfrx,simpnts)),'descend');
-leakvxidx = leakvxidx(tmpval>.9); % Voxels with at least 90% of episodes found
 
-% Now keep the voxel with maximum power
-if any(tmpval>.9)
-    [~,maxvox] = max(sum(powspctm(leakvxidx,simfrx,simpnts),3));
-    maxvox = leakvxidx(maxvox);
-
-% Alternative voxel
-altvxepis = squeeze(predictedepisodes(maxvox,simfrx,:)) + squeeze(simulatedepisodes(dipolevoxIN,simfrx,:));
-truepositivealtvx =  sum(altvxepis==2) ./ sum( squeeze(simulatedepisodes(dipolevoxIN,simfrx,:))) * 100;
-altvxepis = squeeze(predictedepisodes(maxvox,simfrx,:)) - squeeze(simulatedepisodes(dipolevoxIN,simfrx,:));
-falsenegativealtvx =  sum(altvxepis==-1) ./ sum( squeeze(simulatedepisodes(dipolevoxIN,simfrx,:))) * 100;
-
-truenegativealtvx =  sum(sum(sum(predictedepisodes==0))) ./  sum(sum(sum(simulatedepisodes==0))) * 100;
-precisionaltvx = truepositivealtvx / (truepositivealtvx + falsepositive) * 100;
-recallaltvx = truepositivealtvx / (truepositivealtvx + falsenegative) * 100;
-f1scorealtvx = 2 * (precisionaltvx*recallaltvx) ./ (precisionaltvx + recallaltvx);
-
-stats.altvoxel ={['True negative:']  [num2str(truenegativealtvx)];
-                 ['False positive:'] [num2str(falsepositive)];
-                 ['False negative:'] [num2str(falsenegativealtvx)];
-                 ['True positive:']  [num2str(truepositivealtvx)];
-                 ['Precision:']      [num2str(precisionaltvx)];
-                 ['Recall:']         [num2str(recallaltvx)]; 
-                 ['F1 score:'] [num2str(f1scorealtvx)]
-                 ['Alternative voxel:'] [num2str(maxvox)]};      
-
+%% Find the neighbour voxels with maximum number of the predicted episodes
+connmat1925 = connmat(voxin,voxin);
+nbs = find(connmat1925(dipolevoxIN,:));
+nbs = nbs(nbs ~= dipolevoxIN);
+[tmpval,leakvxidx] = sort(sum(predictedepisodes(nbs,simfrx,simpnts),3) / sum(simulatedepisodes(dipolevoxIN,simfrx,simpnts)),'descend');
+if ~isempty(nbs) && any(tmpval > 0)
+    leakvxidx = nbs(leakvxidx(1));
+    altvxepis = squeeze(predictedepisodes(leakvxidx,simfrx,:)) + squeeze(simulatedepisodes(dipolevoxIN,simfrx,:));
+    truepositivealtvx =  sum(altvxepis==2) ./ sum( squeeze(simulatedepisodes(dipolevoxIN,simfrx,:))) * 100;
+    altvxepis = squeeze(predictedepisodes(leakvxidx,simfrx,:)) - squeeze(simulatedepisodes(dipolevoxIN,simfrx,:));
+    falsenegativealtvx =  sum(altvxepis==-1) ./ sum( squeeze(simulatedepisodes(dipolevoxIN,simfrx,:))) * 100;
+    
+    truenegativealtvx =  sum(sum(sum(predictedepisodes==0))) ./  sum(sum(sum(simulatedepisodes==0))) * 100;
+    precisionaltvx = truepositivealtvx / (truepositivealtvx + falsepositive) * 100;
+    recallaltvx = truepositivealtvx / (truepositivealtvx + falsenegative) * 100;
+    f1scorealtvx = 2 * (precisionaltvx*recallaltvx) ./ (precisionaltvx + recallaltvx);
+    
+    stats.nbvoxel ={['True negative:']  [num2str(truenegativealtvx)];
+                     ['False positive:'] [num2str(falsepositive)];
+                     ['False negative:'] [num2str(falsenegativealtvx)];
+                     ['True positive:']  [num2str(truepositivealtvx)];
+                     ['Precision:']      [num2str(precisionaltvx)];
+                     ['Recall:']         [num2str(recallaltvx)]; 
+                     ['F1 score:'] [num2str(f1scorealtvx)]
+                     ['Alternative voxel:'] [num2str(leakvxidx)]};      
 end
-           
+
+%% Find the not neighboring voxel with maximum number of the predicted episodes across brain
+non_nbs = find(~connmat1925(dipolevoxIN,:));
+[tmpval_dist, leakvxidx_dist] = sort(sum(predictedepisodes(non_nbs,simfrx,simpnts),3) / sum(simulatedepisodes(dipolevoxIN,simfrx,simpnts)),'descend');
+
+if ~isempty(non_nbs) && any(tmpval_dist > 0)
+    leakvxidx_dist   = non_nbs(leakvxidx_dist(1));
+
+    altvxepis = squeeze(predictedepisodes(leakvxidx_dist,simfrx,:)) + squeeze(simulatedepisodes(dipolevoxIN,simfrx,:));
+    truepositivedist =  sum(altvxepis==2) ./ sum(squeeze(simulatedepisodes(dipolevoxIN,simfrx,:))) * 100;
+    altvxepis = squeeze(predictedepisodes(leakvxidx_dist,simfrx,:)) - squeeze(simulatedepisodes(dipolevoxIN,simfrx,:));
+    falsenegativedist =  sum(altvxepis==-1) ./ sum(squeeze(simulatedepisodes(dipolevoxIN,simfrx,:))) * 100;
+    truenegativedist =  sum(sum(sum(predictedepisodes==0))) ./  sum(sum(sum(simulatedepisodes==0))) * 100;
+    precisiondist = truepositivedist / (truepositivedist + falsepositive) * 100;
+    recalldist = truepositivedist / (truepositivedist + falsenegativedist) * 100;
+    f1scoredist = 2 * (precisiondist*recalldist) ./ (precisiondist + recalldist);
+    stats.distvoxel ={['True negative:']  [num2str(truenegativedist)];
+                      ['False positive:'] [num2str(falsepositive)];
+                      ['False negative:'] [num2str(falsenegativedist)];
+                      ['True positive:']  [num2str(truepositivedist)];
+                      ['Precision:']      [num2str(precisiondist)];
+                      ['Recall:']         [num2str(recalldist)];
+                      ['F1 score:']       [num2str(f1scoredist)]
+                      ['Distant voxel:']  [num2str(leakvxidx_dist)]};
+end   
 end
 
 
