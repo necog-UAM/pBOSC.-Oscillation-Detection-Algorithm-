@@ -24,6 +24,11 @@ function [connected_episodes, conepisocc] = sBOSC_connect_episodes(cfg, epis)
 %                                     with dimensions [nTrials x nVox x nFrex x nTp].
 
 fsample = cfg.fsample;
+if isfield(cfg, 'min_cycles')
+    min_cycles = cfg.min_cycles;
+else
+    min_cycles = [];
+end
 frex = cfg.frex;
 nFrex = length(cfg.frex);
 [nTrials, nVox] = size(epis);
@@ -127,6 +132,11 @@ for v = 1:nVox
     end
 
     catepis_connected = catepis_connected([catepis_connected.freq] ~= 100);
+
+    % minimum duration filter
+    if ~isempty(min_cycles)
+        catepis_connected = catepis_connected([catepis_connected.dur_cyc] >= min_cycles);
+    end
 
     %% Recover trials
     for ep = 1:length(catepis_connected)

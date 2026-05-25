@@ -15,7 +15,6 @@ function [episodes, episocc] = sBOSC_episodes(spatialpks, powspctm, cfg)
 % - cfg        : [struct]     Configuration structure with fields:
 %       cfg.frex       : [vector] Frequencies of interest in Hz.
 %       cfg.fsample    : [scalar] Sampling rate in Hz.
-%       cfg.min_cycles : [scalar] Minimum duration of an episode in cycles.
 %
 % Output Arguments:
 % - episodes   : [cell array] {nTrials, nVoxIN} array of structs containing
@@ -26,7 +25,6 @@ function [episodes, episocc] = sBOSC_episodes(spatialpks, powspctm, cfg)
 
 Frex = cfg.frex;
 fsample = cfg.fsample;
-min_cycles = cfg.min_cycles;
 
 [nTrials, nVox, nFrex, nTp] = size(spatialpks);
 
@@ -35,7 +33,6 @@ source = source.inverse;
 inside = find(source.inside);
 
 % Spatial configuration
-
 positions = source.pos(inside,:);
 distance = 1.5; % 19 neighbours maximum
 
@@ -45,12 +42,10 @@ connmat = pdist2(positions, positions) <= distance;
 % Load 1925 matrix
 load source_template_10mm_1925.mat
 inside1925 = find(source.inverse.inside);
-
 voxin = find(ismember(inside,inside1925)); % The 1925 voxels inside the 3924
 nVoxIN = length(voxin);
 
 timep_freq = fsample.*(1./Frex') ;    % time points for 1 cycles of each foi
-
 conn = conndef(2,'maximal');
 
 % Initialize
@@ -77,7 +72,7 @@ for trl=1:nTrials
 
         ct=1;
         for i=1:CC.NumObjects
-            if length(CC.PixelIdxList{i})>timep_freq(end)*1       % 1--- only evaluate clusters with duration > 1 cycles of highest freq
+            if length(CC.PixelIdxList{i})>timep_freq(end)*0.5       % remove small pixels
                 temp = L==i;
                 
                 % Weighted mean to get cluster frequency
@@ -91,7 +86,6 @@ for trl=1:nTrials
 
                     [f,t]=ind2sub(size(L),CC.PixelIdxList{i});
                     v2 = repmat(vidx,[length(f),1]);
-                if epis_dur_cyc >= min_cycles 
 
                     % Store descriptives
                     episodes{trl,vin}(ct).freq = single(epis_freq);
@@ -102,7 +96,6 @@ for trl=1:nTrials
                     pow = pow_trl(idx_pow);
                     episodes{trl,vin}(ct).power = single(mean(pow(:)));       
                     ct=ct+1;
-                end
             end
         end
     end
