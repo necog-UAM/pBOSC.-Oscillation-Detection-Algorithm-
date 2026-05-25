@@ -101,7 +101,7 @@ for v = 1:nVox
                             ct = 1;
                         elseif ~isempty(intersect(f1,f2))
                             catepis_connected(ctep).freq = (cat_epis_v(ep1).freq*length(cat_epis_v(ep1).timeps) + cat_epis_v(ep2).freq*length(cat_epis_v(ep2).timeps)) ./ (length(cat_epis_v(ep1).timeps) + length(cat_epis_v(ep2).timeps));
-                            catepis_connected(ctep).timeps = unique([tep1 tep2]);
+                            catepis_connected(ctep).timeps = cat_epis_v(ep1).timeps(1) : cat_epis_v(ep2).timeps(end);
                             catepis_connected(ctep).dur_sec = length(catepis_connected(ctep).timeps)./fsample;
                             catepis_connected(ctep).dur_cyc = catepis_connected(ctep).freq .* catepis_connected(ctep).dur_sec;
                             catepis_connected(ctep).power = (cat_epis_v(ep1).power*length(cat_epis_v(ep1).timeps) + cat_epis_v(ep2).power*length(cat_epis_v(ep2).timeps)) ./ (length(cat_epis_v(ep1).timeps) + length(cat_epis_v(ep2).timeps));

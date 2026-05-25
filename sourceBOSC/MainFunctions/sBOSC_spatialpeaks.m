@@ -59,6 +59,7 @@ for trl = 1:nTrials
         pow_v = reshape(pow_trl(v, :, :), [nFrex, nTp]);
         % Local peaks
         [~, ~, locmx] = findlocalmax(pow_v, 1, []);
+        
         % Aperiodic threshold
         mask_ap_v = reshape(mask_ap_ths(v, :, :), [nFrex, nTp]);
         localpks(trl,v,:,:) = locmx & mask_ap_v;
@@ -87,7 +88,7 @@ for trl = 1:nTrials
                 [mx, my, mz] = ind2sub(dim, max_positions(m));
                 dists = (vx_all-mx).^2 + (vy_all-my).^2 + (vz_all-mz).^2;
                 [~, nearest] = min(dists);
-                if anypeak(nearest, idx)
+                if anypeak(nearest, t0)
                     spatial_pks_vox(nearest) = true;
                 end
             end

@@ -1,4 +1,4 @@
-function [episodes, episocc] = sBOSC_episodes(spatialpks, powspctm, cfg)
+function [episodes, episocc] = sBOSC_episodes(spatialpks, powspctm, thshld, cfg)
 %% sBOSC_episodes
 % Extracts and filters valid oscillatory episodes from spatial peaks.
 %
@@ -12,6 +12,7 @@ function [episodes, episocc] = sBOSC_episodes(spatialpks, powspctm, cfg)
 % Input Arguments:
 % - spatialpks : [4D logical] Spatial peaks [nTrials x nVox x nFrex x nTp].
 % - powspctm   : [4D matrix]  Power spectrum [nTrials x nVox x nFrex x nTp].
+% - thshld     : calculated power threshold
 % - cfg        : [struct]     Configuration structure with fields:
 %       cfg.frex       : [vector] Frequencies of interest in Hz.
 %       cfg.fsample    : [scalar] Sampling rate in Hz.
@@ -59,11 +60,16 @@ for trl=1:nTrials
     spatialpks_trl = reshape(spatialpks(trl, :, :, :), [nVox, nFrex, nTp]);
     pow_trl = squeeze(powspctm(trl, :, :, :));
 
+    thshld_3d  = reshape(thshld, [nVox, nFrex, 1]);
+    mask_ap_ths = pow_trl >= thshld_3d;
+
     for vin=1:nVoxIN   % only the 1925 voxels inside the cortex to save time
         vidx = voxin(vin);
         neighvoxs = find(connmat(vidx,:)==1);
 
-        tfsmooth = reshape(any(spatialpks_trl(neighvoxs, :, :), 1), [nFrex, nTp]);
+        % Spatial smoothing
+        mask_ap_v = reshape(mask_ap_ths(vidx, :, :), [nFrex, nTp]);
+        tfsmooth = reshape(any(spatialpks_trl(neighvoxs,:,:), 1), [nFrex, nTp]) & mask_ap_v;
 
         if ~any(tfsmooth(:)), continue; end
 
@@ -73,8 +79,7 @@ for trl=1:nTrials
         ct=1;
         for i=1:CC.NumObjects
             if length(CC.PixelIdxList{i})>timep_freq(end)*0.5       % remove small pixels
-                temp = L==i;
-                
+                temp = L==i;           
                 % Weighted mean to get cluster frequency
                 epis_freq = sum(temp,2);
                 [~,idx_freq] = max(epis_freq);
@@ -86,7 +91,7 @@ for trl=1:nTrials
 
                     [f,t]=ind2sub(size(L),CC.PixelIdxList{i});
                     v2 = repmat(vidx,[length(f),1]);
-
+            if epis_dur_cyc >= 1 
                     % Store descriptives
                     episodes{trl,vin}(ct).freq = single(epis_freq);
                     episodes{trl,vin}(ct).dur_sec = single(epis_dur_sec);
@@ -99,7 +104,7 @@ for trl=1:nTrials
             end
         end
     end
-
+    end
     % Reconstruct episocc matrix
     for vin = 1:nVoxIN
         for ep=1:length(episodes{trl,vin})
