@@ -12,6 +12,8 @@ function [connected_episodes, conepisocc] = sBOSC_connect_episodes(cfg, epis)
 %       cfg.frex    : [vector] Frequencies of interest in Hz.
 %       cfg.fsample : [scalar] Sampling rate in Hz.
 %       cfg.time    : [scalar] Total number of time points per trial.
+%       cfg.windowlength : [scalar] Length of the fft window to correct
+%       temporal leak (in cycles). Must be the same used in sBOSC_timefreq.
 % - epis : [cell array] {nTrials, nVox} array of structs containing
 %                       descriptives (freq, dur_sec, dur_cyc, timeps, power) 
 %                       for each original episode.
@@ -24,6 +26,11 @@ function [connected_episodes, conepisocc] = sBOSC_connect_episodes(cfg, epis)
 %                                     with dimensions [nTrials x nVox x nFrex x nTp].
 
 fsample = cfg.fsample;
+if isfield(cfg, 'windowlength')
+    windowlength = cfg.windowlength;
+else
+    windowlength = [];
+end
 if isfield(cfg, 'min_cycles')
     min_cycles = cfg.min_cycles;
 else
@@ -60,7 +67,7 @@ for v = 1:nVox
 
     if isempty(cat_epis_v); continue; end
 
-    listepis = [1:length(cat_epis_v)];           % original episodes, 1st iteration
+    listepis = [1:length(cat_epis_v)];   % original episodes, 1st iteration
     checkepis = [];
     catepis_connected = cat_epis_v(1);
     Nit = 0;             % number of iterations
@@ -77,7 +84,7 @@ for v = 1:nVox
         while ep1 <= length(listepis)
             cat_epis_v(ep1).timeps = single(cat_epis_v(ep1).timeps);
             t0 = cat_epis_v(ep1).timeps(1);
-            cycntps = 1/cat_epis_v(ep1).freq*fsample;       % number of time points corresponding to 1 cycle
+            cycntps = 1/cat_epis_v(ep1).freq*fsample;  % number of time points corresponding to 1 cycle
             tf = round(cat_epis_v(ep1).timeps(end) + 1/2*cycntps);     % + 1/2 missing cycle
             tep1 = [t0:tf];
             if ep1+1 <= length(cat_epis_v) && cat_epis_v(ep1).freq ~= 100
@@ -105,8 +112,9 @@ for v = 1:nVox
                             catepis_connected(ctep).dur_sec = length(catepis_connected(ctep).timeps)./fsample;
                             catepis_connected(ctep).dur_cyc = catepis_connected(ctep).freq .* catepis_connected(ctep).dur_sec;
                             catepis_connected(ctep).power = (cat_epis_v(ep1).power*length(cat_epis_v(ep1).timeps) + cat_epis_v(ep2).power*length(cat_epis_v(ep2).timeps)) ./ (length(cat_epis_v(ep1).timeps) + length(cat_epis_v(ep2).timeps));
+                            catepis_connected(ctep).power_ratio = (cat_epis_v(ep1).power_ratio*length(cat_epis_v(ep1).timeps) + cat_epis_v(ep2).power_ratio*length(cat_epis_v(ep2).timeps)) ./ (length(cat_epis_v(ep1).timeps) + length(cat_epis_v(ep2).timeps)); 
                             catepis_connected(ctep).trl_id = cat_epis_v(ep1).trl_id;
-                            if ep1 == 1 && (length(listepis)==1)      % only 1st episode is a candidate
+                            if ep1 == 1 && (length(listepis)==1)   % only 1st episode is a candidate
                                 catepis_connected(ep2)= [] ;
                             end
                             ct = 0;
@@ -118,10 +126,10 @@ for v = 1:nVox
                 ct=1;
             end
             if ct==0
-                checkepis = [checkepis ep1];      % new episodes might have new connections; run the algorithm again
+                checkepis = [checkepis ep1];   % new episodes might have new connections; run the algorithm again
                 ctep = ctep + 1;
                 ep1 = ep1+1;
-                cat_epis_v(ep2).freq = 100;           % mark episodes that have already been connected
+                cat_epis_v(ep2).freq = 100;   % mark episodes that have already been connected
             elseif ct==1
                 catepis_connected(ctep) = cat_epis_v(ep1);
                 ctep = ctep + 1;
@@ -131,12 +139,31 @@ for v = 1:nVox
         Nit = Nit+1;
     end
 
-    catepis_connected = catepis_connected([catepis_connected.freq] ~= 100);
+catepis_connected = catepis_connected([catepis_connected.freq] ~= 100);
 
-    % minimum duration filter
-    if ~isempty(min_cycles)
-        catepis_connected = catepis_connected([catepis_connected.dur_cyc] >= min_cycles);
+% Temporal leak FFT correction
+if ~isempty(windowlength)
+    for ep = 1:length(catepis_connected)
+        f_ep     = catepis_connected(ep).freq;
+        T_trim   = round((windowlength / f_ep * fsample) / 4);
+        tps      = catepis_connected(ep).timeps;
+        tps_trim = tps(tps > tps(1) + T_trim & tps < tps(end) - T_trim);
+
+        if isempty(tps_trim)
+            catepis_connected(ep).freq = 100;
+        else
+            catepis_connected(ep).timeps  = tps_trim;
+            catepis_connected(ep).dur_sec = length(tps_trim) / fsample;
+            catepis_connected(ep).dur_cyc = f_ep * catepis_connected(ep).dur_sec;
+        end
     end
+    catepis_connected = catepis_connected([catepis_connected.freq] ~= 100);
+end
+
+% Minimum duration filter 
+if ~isempty(min_cycles)
+    catepis_connected = catepis_connected([catepis_connected.dur_cyc] >= min_cycles);
+end
 
     %% Recover trials
     for ep = 1:length(catepis_connected)

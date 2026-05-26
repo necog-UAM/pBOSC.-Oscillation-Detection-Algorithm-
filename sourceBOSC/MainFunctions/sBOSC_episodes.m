@@ -19,7 +19,7 @@ function [episodes, episocc] = sBOSC_episodes(spatialpks, powspctm, thshld, cfg)
 %
 % Output Arguments:
 % - episodes   : [cell array] {nTrials, nVoxIN} array of structs containing
-%                             descriptives (freq, dur_sec, dur_cyc, timeps, power) 
+%                             descriptives (freq, dur_sec, dur_cyc, timeps, power, power ratio) 
 %                             for each episode.
 % - episocc    : [4D logical] Clean boolean mask of valid episode occurrences 
 %                             with dimensions [nTrials x nVoxIN x nFrex x nTp].
@@ -99,7 +99,8 @@ for trl=1:nTrials
                     episodes{trl,vin}(ct).timeps = int32(find(epis_tps==1));
                     idx_pow = sub2ind(size(pow_trl), v2, f, t);
                     pow = pow_trl(idx_pow);
-                    episodes{trl,vin}(ct).power = single(mean(pow(:)));       
+                    episodes{trl,vin}(ct).power = single(mean(pow(:)));
+                    episodes{trl,vin}(ct).power_ratio = single(mean(pow(:)) / thshld(vidx, idx_freq));
                     ct=ct+1;
             end
         end
