@@ -64,6 +64,8 @@ We then add a few consecutive cycles of 12 Hz and 4 Hz sinusoidal events, direct
 
                     simsignal = sBOSC_SimulateSignalSource(cfg);
 ```
+The output simsignal is a FieldTrip structure containing the simulated MEG data. It also stores simulation metadata used later for validation.
+
 
 ![image_0.png](README_media/image_0.png)
 
