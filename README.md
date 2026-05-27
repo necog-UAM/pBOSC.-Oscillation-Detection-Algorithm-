@@ -140,8 +140,7 @@ Because true oscillations must manifest as spectral peaks above the 1/f, the too
 
 ```matlab
                 % Step 5: Spatial peaks
-                    cfg = [];
-                    [spatialpks, localpks] = sBOSC_spatialpeaks(powspctm, thshld, cfg);
+                [spatialpks, localpks] = sBOSC_spatialpeaks(powspctm, thshld);
 
 ```
 
@@ -158,8 +157,7 @@ To compensate for this uncertainty, sBOSC applies a spatial smoothing across vox
                     cfg = [];
                     cfg.frex = frex;
                     cfg.fsample = fsample;
-                    cfg.min_cycles = 3;
-                    [episodes, episocc] = sBOSC_episodes(spatialpks, powspctm, cfg);
+                    [episodes, episocc] = sBOSC_episodes(spatialpks, powspctm, thshld, cfg);
 
 ```
 
