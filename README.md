@@ -121,13 +121,13 @@ We can also examine the component removed from the spectrum to verify that it ma
 By plotting the power spectra together, we can verify that the aperiodic component traces the original signal's 1/f background, with the detected frequency peaks at 4 and 12 Hz successfully removed.![image_7.png](README_media/image_7.png)
 
 
-This isolated aperiodic time signal is essential for establishing a robust power threshold to detect true oscillations. We perform a time\-frequency decomposition on the original source\-reconstructed signal (blue). Crucially, we apply the exact same time\-frequency transformation to the reconstructed aperiodic signal (pink). This yields two parallel power spectra, allowing us to directly extract a power threshold equal to a percentile (95%) of this aperiodic power spectrum. 
+This isolated aperiodic time signal is essential for establishing a robust power threshold to detect true oscillations. We perform a time\-frequency decomposition on the original source\-reconstructed signal (blue). Crucially, we apply the exact same time\-frequency transformation to the reconstructed aperiodic signal (pink). This yields two parallel power spectra, allowing us to directly extract a power threshold equal to a percentile (99%) of this aperiodic power spectrum. 
 
 ```matlab
                 % Step 4: Powspctm and threshold
                     cfg = [];
                     cfg.frex = exp(0.6:0.1:3.7);
-                    cfg.apthshld = 95;
+                    cfg.apthshld = 99;
                     [powspctm, thshld, frex, fsample] = sBOSC_timefreq(simsignal_source, sim_aperiodic, cfg);
 
 ```
